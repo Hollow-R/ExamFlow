@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+
+{% block title %}Sınavlar | ExamFlow{% endblock %}
+
+{% block body %}
+<nav class="navbar bg-white border-bottom">
+    <div class="container-fluid px-4">
+        <a class="navbar-brand brand-mark" href="{{ url_for('teacher.dashboard') }}">ExamFlow</a>
+        <div class="d-flex align-items-center gap-3">
+            <span class="text-secondary">{{ current_user.full_name }}</span>
+            <form method="post" action="{{ url_for('auth.logout') }}">
+                <button class="btn btn-outline-secondary btn-sm" type="submit">Çıkış yap</button>
+            </form>
+        </div>
+    </div>
+</nav>
+<div class="dashboard-layout">
+    <aside class="dashboard-sidebar">
+        <span class="sidebar-label">ÖĞRETMEN</span>
+        <a class="sidebar-link" href="{{ url_for('teacher.dashboard') }}">Genel bakış</a>
+        <a class="sidebar-link" href="{{ url_for('teacher.questions') }}">Sorular</a>
+        <a class="sidebar-link active" href="{{ url_for('teacher.exams') }}">Sınavlar</a>
+    </aside>
+    <main class="dashboard-content">
+        <p class="eyebrow mb-2">ÖĞRETMEN PANELİ</p>
+        <h1 class="h3 fw-semibold">Sınavlar</h1>
+        <p class="text-secondary mt-2">Sorularınızı seçin, başlangıç ve süre belirleyin; sınav {{ student_count }} kayıtlı öğrenciye atanır.</p>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}" role="alert">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <section class="card border-0 shadow-sm mt-4">
+            <div class="card-body p-4">
+                <h2 class="h5 mb-3">Yeni sınav oluştur ve yayımla</h2>
+                {% if not questions %}
+                    <p class="text-secondary">Sınav oluşturmadan önce <a href="{{ url_for('teacher.questions') }}">soru bankasına</a> soru ekleyin.</p>
+                {% else %}
+                <form method="post" id="exam-form">
+                    <div class="row g-3">
+                        <div class="col-12 col-lg-5">
+                            <label class="form-label" for="title">Sınav adı</label>
+                            <input class="form-control" id="title" name="title" maxlength="120" required>
+                        </div>
+                        <div class="col-12 col-md-6 col-lg-4">
+                            <label class="form-label" for="starts_at_local">Başlangıç zamanı</label>
+                            <input class="form-control" id="starts_at_local" name="starts_at_local" type="datetime-local" required>
+                            <input id="starts_at_utc" name="starts_at_utc" type="hidden">
+                            <div class="form-text">Saat dilimi bilgisayarınızın yerel saatidir.</div>
+                        </div>
+                        <div class="col-12 col-md-6 col-lg-3">
+                            <label class="form-label" for="duration_minutes">Süre (dakika)</label>
+                            <input class="form-control" id="duration_minutes" name="duration_minutes" type="number" min="1" max="480" value="60" required>
+                        </div>
+                    </div>
+                    <fieldset class="mt-4">
+                        <legend class="form-label">Sınav soruları</legend>
+                        <div class="row g-2">
+                            {% for question in questions %}
+                                <label class="col-12 col-lg-6">
+                                    <span class="question-choice card card-body h-100">
+                                        <span class="d-flex gap-2">
+                                            <input class="form-check-input mt-1" type="checkbox" name="question_ids" value="{{ question.id }}">
+                                            <span>
+                                                <span class="d-block fw-semibold">{{ question.text }}</span>
+                                                <small class="text-secondary">{{ question.category.name }} · {{ {'easy': 'Kolay', 'medium': 'Orta', 'hard': 'Zor'}[question.difficulty] }}</small>
+                                            </span>
+                                        </span>
+                                    </span>
+                                </label>
+                            {% endfor %}
+                        </div>
+                    </fieldset>
+                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mt-4">
+                        <span class="text-secondary">Yayınlanan sınav tüm mevcut öğrenci hesaplarına atanır.</span>
+                        <button class="btn btn-primary" type="submit">Sınavı kaydet ve yayımla</button>
+                    </div>
+                </form>
+                {% endif %}
+            </div>
+        </section>
+
+        <section class="card border-0 shadow-sm mt-4">
+            <div class="card-body p-4">
+                <h2 class="h5 mb-3">Yayımlanan sınavlar</h2>
+                {% if exams %}
+                    <div class="table-responsive">
+                        <table class="table align-middle">
+                            <thead><tr><th>Sınav</th><th>Başlangıç</th><th>Süre</th><th>Atama</th><th></th></tr></thead>
+                            <tbody>
+                                {% for exam in exams %}
+                                    <tr>
+                                        <td>{{ exam.title }}</td>
+                                        <td><time class="local-time" data-utc="{{ exam.starts_at.isoformat() }}Z">{{ exam.starts_at.strftime('%Y-%m-%d %H:%M') }} UTC</time></td>
+                                        <td>{{ exam.duration_minutes }} dk</td>
+                                        <td>{{ exam.assignments|length }} öğrenci</td>
+                                        <td><a class="btn btn-sm btn-outline-primary" href="{{ url_for('teacher.exam_results', exam_id=exam.id) }}">Sonuçlar</a></td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p class="text-secondary mb-0">Henüz sınav yayımlanmamış.</p>
+                {% endif %}
+            </div>
+        </section>
+    </main>
+</div>
+<script>
+    document.querySelectorAll(".local-time").forEach(function (element) {
+        const date = new Date(element.dataset.utc);
+        element.textContent = date.toLocaleString();
+    });
+
+    const examForm = document.getElementById("exam-form");
+    if (examForm) {
+        examForm.addEventListener("submit", function (event) {
+            const localInput = document.getElementById("starts_at_local");
+            const selectedDate = new Date(localInput.value);
+            if (Number.isNaN(selectedDate.getTime())) {
+                event.preventDefault();
+                localInput.setCustomValidity("Geçerli bir başlangıç zamanı seçin.");
+                localInput.reportValidity();
+                return;
+            }
+            localInput.setCustomValidity("");
+            document.getElementById("starts_at_utc").value = selectedDate.toISOString();
+        });
+    }
+</script>
+{% endblock %}

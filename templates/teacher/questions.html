@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+
+{% block title %}Soru Bankası | ExamFlow{% endblock %}
+
+{% block body %}
+<nav class="navbar bg-white border-bottom">
+    <div class="container-fluid px-4">
+        <a class="navbar-brand brand-mark" href="{{ url_for('teacher.dashboard') }}">ExamFlow</a>
+        <div class="d-flex align-items-center gap-3">
+            <span class="text-secondary">{{ current_user.full_name }}</span>
+            <form method="post" action="{{ url_for('auth.logout') }}">
+                <button class="btn btn-outline-secondary btn-sm" type="submit">Çıkış yap</button>
+            </form>
+        </div>
+    </div>
+</nav>
+<div class="dashboard-layout">
+    <aside class="dashboard-sidebar">
+        <span class="sidebar-label">ÖĞRETMEN</span>
+        <a class="sidebar-link" href="{{ url_for('teacher.dashboard') }}">Genel bakış</a>
+        <a class="sidebar-link active" href="{{ url_for('teacher.questions') }}">Sorular</a>
+        <a class="sidebar-link" href="{{ url_for('teacher.exams') }}">Sınavlar</a>
+    </aside>
+    <main class="dashboard-content">
+        <p class="eyebrow mb-2">ÖĞRETMEN PANELİ</p>
+        <h1 class="h3 fw-semibold">Soru bankası</h1>
+        <p class="text-secondary mt-2">Kategorili ve zorluk seviyeli çoktan seçmeli sorularınızı yönetin.</p>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}" role="alert">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <div class="row g-4 mt-1">
+            <div class="col-12 col-xl-5">
+                <section class="card border-0 shadow-sm mb-4">
+                    <div class="card-body p-4">
+                        <h2 class="h5 mb-3">Kategori ekle</h2>
+                        <form method="post" action="{{ url_for('teacher.create_category') }}" class="d-flex gap-2">
+                            <input class="form-control" name="name" maxlength="80" placeholder="Örn. Matematik" required>
+                            <button class="btn btn-outline-primary flex-shrink-0" type="submit">Ekle</button>
+                        </form>
+                    </div>
+                </section>
+
+                <section class="card border-0 shadow-sm">
+                    <div class="card-body p-4">
+                        <h2 class="h5 mb-3">Yeni soru</h2>
+                        {% if not categories %}
+                            <p class="text-secondary mb-0">Önce bir kategori oluşturun.</p>
+                        {% else %}
+                        <form method="post" action="{{ url_for('teacher.questions') }}">
+                            <div class="mb-3">
+                                <label class="form-label" for="question-text">Soru metni</label>
+                                <textarea class="form-control" id="question-text" name="text" rows="3" required>{{ form_text or '' }}</textarea>
+                            </div>
+                            <div class="row g-3">
+                                <div class="col-7">
+                                    <label class="form-label" for="category">Kategori</label>
+                                    <select class="form-select" id="category" name="category_id" required>
+                                        <option value="">Seçin</option>
+                                        {% for category in categories %}
+                                            <option value="{{ category.id }}" {% if form_category_id == category.id %}selected{% endif %}>{{ category.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="col-5">
+                                    <label class="form-label" for="difficulty">Zorluk</label>
+                                    <select class="form-select" id="difficulty" name="difficulty" required>
+                                        {% for value, label in [('easy', 'Kolay'), ('medium', 'Orta'), ('hard', 'Zor')] %}
+                                            <option value="{{ value }}" {% if form_difficulty == value %}selected{% endif %}>{{ label }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                            <fieldset class="mt-3">
+                                <legend class="form-label">Şıklar ve doğru cevap</legend>
+                                <div id="option-list">
+                                    {% for index in range(4) %}
+                                        <div class="input-group mb-2 option-row">
+                                            <span class="input-group-text">
+                                                <input class="form-check-input mt-0" type="radio" name="correct_option" value="{{ index }}" aria-label="Bu şık doğru cevap" {% if form_correct_option == index %}checked{% endif %} required>
+                                            </span>
+                                            <span class="input-group-text option-letter">{{ 'ABCD'[index] }}</span>
+                                            <input class="form-control" name="option_text" maxlength="500" placeholder="Şık {{ index + 1 }}" value="{{ form_options[index] if form_options and index < form_options|length else '' }}">
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                                <p class="form-text">En az iki şık doldurun; doğru cevabın yanındaki daireyi seçin.</p>
+                            </fieldset>
+                            <button class="btn btn-primary w-100 mt-2" type="submit">Soruyu kaydet</button>
+                        </form>
+                        {% endif %}
+                    </div>
+                </section>
+            </div>
+
+            <div class="col-12 col-xl-7">
+                <section class="card border-0 shadow-sm">
+                    <div class="card-body p-4">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h2 class="h5 mb-0">Sorularım</h2>
+                            <span class="badge text-bg-light">{{ questions|length }} soru</span>
+                        </div>
+                        {% if questions %}
+                            <div class="list-group list-group-flush">
+                                {% for question in questions %}
+                                    <article class="list-group-item px-0 py-3">
+                                        <div class="d-flex justify-content-between gap-3">
+                                            <div>
+                                                <p class="fw-semibold mb-2">{{ question.text }}</p>
+                                                <div class="d-flex flex-wrap gap-2 mb-2">
+                                                    <span class="badge text-bg-light">{{ question.category.name }}</span>
+                                                    <span class="badge text-bg-secondary">{{ {'easy': 'Kolay', 'medium': 'Orta', 'hard': 'Zor'}[question.difficulty] }}</span>
+                                                </div>
+                                                <ol class="small text-secondary mb-0">
+                                                    {% for option in question.options %}
+                                                        <li {% if option.is_correct %}class="fw-semibold text-success"{% endif %}>{{ option.text }}{% if option.is_correct %} · Doğru cevap{% endif %}</li>
+                                                    {% endfor %}
+                                                </ol>
+                                            </div>
+                                            <div class="d-flex flex-column gap-2">
+                                                <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('teacher.edit_question', question_id=question.id) }}">Düzenle</a>
+                                                <form method="post" action="{{ url_for('teacher.delete_question', question_id=question.id) }}" onsubmit="return confirm('Bu soruyu silmek istiyor musunuz?');">
+                                                    <button class="btn btn-sm btn-outline-danger" type="submit">Sil</button>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </article>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <p class="text-secondary mb-0">Henüz soru eklenmemiş.</p>
+                        {% endif %}
+                    </div>
+                </section>
+            </div>
+        </div>
+    </main>
+</div>
+{% endblock %}

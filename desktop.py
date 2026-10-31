@@ -1,27 +1,32 @@
 
+import os
 import threading
 import time
-import webview
+from urllib.parse import urlparse
 
-from app import start_server
+import webview
 
 
 def main():
-    # Flask sunucusunu arka planda başlat
-    server_thread = threading.Thread(
-        target=start_server,
-        daemon=True
-    )
+    server_url = os.environ.get("EXAMFLOW_SERVER_URL")
+    if server_url:
+        parsed_url = urlparse(server_url)
+        if parsed_url.scheme not in ("http", "https") or not parsed_url.netloc:
+            raise ValueError("EXAMFLOW_SERVER_URL geçerli bir HTTP(S) adresi olmalıdır.")
+        window_url = server_url
+    else:
+        from app import start_server
 
-    server_thread.start()
+        server_thread = threading.Thread(target=start_server, daemon=True)
+        server_thread.start()
+        time.sleep(1)
+        window_url = "http://127.0.0.1:{}".format(
+            os.environ.get("EXAMFLOW_PORT", "5000")
+        )
 
-    # Sunucunun başlaması için kısa süre bekle
-    time.sleep(1)
-
-    # Masaüstü penceresini oluştur
-    window = webview.create_window(
+    webview.create_window(
         title="ExamFlow",
-        url="http://127.0.0.1:5000",
+        url=window_url,
         width=1200,
         height=800,
         min_size=(900, 600),

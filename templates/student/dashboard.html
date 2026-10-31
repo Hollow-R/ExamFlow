@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Öğrenci Paneli | ExamFlow{% endblock %}
+{% block title %}Sınavlarım | ExamFlow{% endblock %}
 
 {% block body %}
 <nav class="navbar bg-white border-bottom">
@@ -17,22 +17,53 @@
 <div class="dashboard-layout student-layout">
     <aside class="dashboard-sidebar">
         <span class="sidebar-label">ÖĞRENCİ</span>
-        <a class="sidebar-link active" href="{{ url_for('student.dashboard') }}">Genel bakış</a>
-        <span class="sidebar-link disabled" aria-disabled="true">Sınavlarım</span>
-        <span class="sidebar-link disabled" aria-disabled="true">Sonuçlarım</span>
+        <a class="sidebar-link active" href="{{ url_for('student.dashboard') }}">Sınavlarım</a>
     </aside>
     <main class="dashboard-content">
         <p class="eyebrow mb-2">ÖĞRENCİ PANELİ</p>
-        <h1 class="h3 fw-semibold">Hoş geldiniz, {{ current_user.full_name }}</h1>
-        <p class="text-secondary mt-2">Size atanan sınavlar ve sonuçlar burada görüntülenecektir.</p>
+        <h1 class="h3 fw-semibold">Sınavlarım</h1>
+        <p class="text-secondary mt-2">Size atanan sınavları ve sınav durumlarını buradan takip edin.</p>
         <section class="card border-0 shadow-sm mt-4">
             <div class="card-body p-4">
-                <h2 class="h5">Sınavlarım</h2>
-                <p class="text-secondary mb-0">
-                    Henüz görüntülenecek bir sınav bulunmuyor.
-                </p>
+                {% if assignments %}
+                    <div class="table-responsive">
+                        <table class="table align-middle">
+                            <thead><tr><th>Sınav</th><th>Başlangıç</th><th>Süre</th><th>Durum</th><th></th></tr></thead>
+                            <tbody>
+                                {% for assignment in assignments %}
+                                    {% set ends_at = assignment.exam.starts_at + timedelta(minutes=assignment.exam.duration_minutes) %}
+                                    <tr>
+                                        <td class="fw-semibold">{{ assignment.exam.title }}</td>
+                                        <td><time class="local-time" data-utc="{{ assignment.exam.starts_at.isoformat() }}Z">{{ assignment.exam.starts_at.strftime('%Y-%m-%d %H:%M') }} UTC</time></td>
+                                        <td>{{ assignment.exam.duration_minutes }} dk</td>
+                                        {% if assignment.submitted_at %}
+                                            <td><span class="badge text-bg-success">Gönderildi</span></td>
+                                            <td><a class="btn btn-sm btn-outline-secondary" href="{{ url_for('student.take_exam', assignment_id=assignment.id) }}">Gönderimi gör</a></td>
+                                        {% elif now < assignment.exam.starts_at %}
+                                            <td><span class="badge text-bg-light">Başlamadı</span></td>
+                                            <td><a class="btn btn-sm btn-outline-secondary" href="{{ url_for('student.take_exam', assignment_id=assignment.id) }}">Detay</a></td>
+                                        {% elif now < ends_at %}
+                                            <td><span class="badge text-bg-primary">Devam ediyor</span></td>
+                                            <td><a class="btn btn-sm btn-primary" href="{{ url_for('student.take_exam', assignment_id=assignment.id) }}">Sınava gir</a></td>
+                                        {% else %}
+                                            <td><span class="badge text-bg-secondary">Süre doldu</span></td>
+                                            <td><a class="btn btn-sm btn-outline-secondary" href="{{ url_for('student.take_exam', assignment_id=assignment.id) }}">Detay</a></td>
+                                        {% endif %}
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p class="text-secondary mb-0">Size henüz sınav atanmamış.</p>
+                {% endif %}
             </div>
         </section>
     </main>
 </div>
+<script>
+    document.querySelectorAll(".local-time").forEach(function (element) {
+        element.textContent = new Date(element.dataset.utc).toLocaleString();
+    });
+</script>
 {% endblock %}

@@ -100,6 +100,36 @@ body {
     color: #9aa4b4;
 }
 
+.question-choice,
+.answer-option {
+    border: 1px solid #e4e8f0;
+    border-radius: 0.6rem;
+    background: #fff;
+}
+
+.question-choice {
+    cursor: pointer;
+    transition: border-color 0.12s ease-in-out;
+}
+
+.question-choice:has(input:checked) {
+    border-color: var(--examflow-blue);
+    background: #f5f7ff;
+}
+
+.answer-option {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.7rem;
+    padding: 0.75rem 1rem;
+    cursor: pointer;
+}
+
+.answer-option:has(input:checked) {
+    border-color: var(--examflow-blue);
+    background: #f5f7ff;
+}
+
 .dashboard-content {
     width: min(100%, 1100px);
     padding: 2.5rem;

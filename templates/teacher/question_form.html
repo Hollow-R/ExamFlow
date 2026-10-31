@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block title %}Soruyu Düzenle | ExamFlow{% endblock %}
+
+{% block body %}
+<nav class="navbar bg-white border-bottom">
+    <div class="container-fluid px-4">
+        <a class="navbar-brand brand-mark" href="{{ url_for('teacher.dashboard') }}">ExamFlow</a>
+        <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('teacher.questions') }}">Soru bankasına dön</a>
+    </div>
+</nav>
+<main class="dashboard-content mx-auto">
+    <h1 class="h3 fw-semibold">Soruyu düzenle</h1>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }}" role="alert">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+    <section class="card border-0 shadow-sm mt-4">
+        <div class="card-body p-4">
+            <form method="post">
+                <div class="mb-3">
+                    <label class="form-label" for="question-text">Soru metni</label>
+                    <textarea class="form-control" id="question-text" name="text" rows="3" required>{{ form_text if form_text is not none else question.text }}</textarea>
+                </div>
+                <div class="row g-3">
+                    <div class="col-7">
+                        <label class="form-label" for="category">Kategori</label>
+                        <select class="form-select" id="category" name="category_id" required>
+                            {% for category in categories %}
+                                <option value="{{ category.id }}" {% if (form_category_id if form_category_id is not none else question.category_id) == category.id %}selected{% endif %}>{{ category.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-5">
+                        <label class="form-label" for="difficulty">Zorluk</label>
+                        <select class="form-select" id="difficulty" name="difficulty" required>
+                            {% for value, label in [('easy', 'Kolay'), ('medium', 'Orta'), ('hard', 'Zor')] %}
+                                <option value="{{ value }}" {% if (form_difficulty if form_difficulty is not none else question.difficulty) == value %}selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <fieldset class="mt-4">
+                    <legend class="form-label">Şıklar ve doğru cevap</legend>
+                    {% for index in range(4) %}
+                        <div class="input-group mb-2">
+                            <span class="input-group-text">
+                                <input class="form-check-input mt-0" type="radio" name="correct_option" value="{{ index }}" aria-label="Bu şık doğru cevap" {% if form_correct_option is not none and form_correct_option == index %}checked{% elif form_correct_option is none and question.options|length > index and question.options[index].is_correct %}checked{% endif %} required>
+                            </span>
+                            <span class="input-group-text">{{ 'ABCD'[index] }}</span>
+                            <input class="form-control" name="option_text" maxlength="500" value="{{ form_options[index] if form_options is not none and index < form_options|length else (question.options[index].text if index < question.options|length else '') }}">
+                        </div>
+                    {% endfor %}
+                </fieldset>
+                <button class="btn btn-primary mt-3" type="submit">Değişiklikleri kaydet</button>
+            </form>
+        </div>
+    </section>
+</main>
+{% endblock %}

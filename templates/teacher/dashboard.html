@@ -18,23 +18,33 @@
     <aside class="dashboard-sidebar">
         <span class="sidebar-label">ÖĞRETMEN</span>
         <a class="sidebar-link active" href="{{ url_for('teacher.dashboard') }}">Genel bakış</a>
-        <span class="sidebar-link disabled" aria-disabled="true">Öğrenciler</span>
-        <span class="sidebar-link disabled" aria-disabled="true">Soru bankası</span>
-        <span class="sidebar-link disabled" aria-disabled="true">Sınavlar</span>
+        <a class="sidebar-link" href="{{ url_for('teacher.questions') }}">Sorular</a>
+        <a class="sidebar-link" href="{{ url_for('teacher.exams') }}">Sınavlar</a>
     </aside>
     <main class="dashboard-content">
         <p class="eyebrow mb-2">ÖĞRETMEN PANELİ</p>
         <h1 class="h3 fw-semibold">Hoş geldiniz, {{ current_user.full_name }}</h1>
-        <p class="text-secondary mt-2">Sınav ve öğrenci yönetimi bu panelden yapılacaktır.</p>
-        <section class="card border-0 shadow-sm mt-4">
-            <div class="card-body p-4">
-                <h2 class="h5">Başlangıç</h2>
-                <p class="text-secondary mb-0">
-                    Hesabınız hazır. Soru bankası ve sınav yönetimi sonraki geliştirme
-                    aşamalarında eklenecektir.
-                </p>
+        <p class="text-secondary mt-2">Soru bankanızı yönetin, sınav yayınlayın ve öğrenci sonuçlarını takip edin.</p>
+        <div class="row g-3 mt-3">
+            <div class="col-12 col-md-6">
+                <a class="card dashboard-card border-0 shadow-sm h-100 text-decoration-none" href="{{ url_for('teacher.questions') }}">
+                    <div class="card-body p-4">
+                        <p class="eyebrow mb-2">SORU BANKASI</p>
+                        <p class="display-6 fw-semibold text-dark mb-1">{{ question_count }}</p>
+                        <span class="text-secondary">Soru · Soruları yönet</span>
+                    </div>
+                </a>
             </div>
-        </section>
+            <div class="col-12 col-md-6">
+                <a class="card dashboard-card border-0 shadow-sm h-100 text-decoration-none" href="{{ url_for('teacher.exams') }}">
+                    <div class="card-body p-4">
+                        <p class="eyebrow mb-2">SINAVLAR</p>
+                        <p class="display-6 fw-semibold text-dark mb-1">{{ exam_count }}</p>
+                        <span class="text-secondary">Yayınlanan sınav · Sınavları görüntüle</span>
+                    </div>
+                </a>
+            </div>
+        </div>
     </main>
 </div>
 {% endblock %}

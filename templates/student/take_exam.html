@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+
+{% block title %}{{ exam.title }} | ExamFlow{% endblock %}
+
+{% block body %}
+<nav class="navbar bg-white border-bottom">
+    <div class="container-fluid px-4">
+        <a class="navbar-brand brand-mark" href="{{ url_for('student.dashboard') }}">ExamFlow</a>
+        <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('student.dashboard') }}">Sınavlarıma dön</a>
+    </div>
+</nav>
+<main class="dashboard-content mx-auto">
+    <p class="eyebrow mb-2">ÖĞRENCİ SINAVI</p>
+    <h1 class="h3 fw-semibold">{{ exam.title }}</h1>
+    <p class="text-secondary">
+        Başlangıç:
+        <time class="local-time" data-utc="{{ exam.starts_at.isoformat() }}Z">{{ exam.starts_at.strftime('%Y-%m-%d %H:%M') }} UTC</time>
+        · {{ exam.duration_minutes }} dakika
+    </p>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }}" role="alert">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    {% if assignment.submitted_at %}
+        <section class="card border-0 shadow-sm mt-4">
+            <div class="card-body p-4">
+                <h2 class="h5">Cevaplarınız gönderildi</h2>
+                <p class="text-secondary mb-0">
+                    Gönderim zamanı:
+                    <time class="local-time" data-utc="{{ assignment.submitted_at.isoformat() }}Z">{{ assignment.submitted_at.strftime('%Y-%m-%d %H:%M') }} UTC</time>
+                </p>
+            </div>
+        </section>
+    {% elif now < exam.starts_at %}
+        <section class="card border-0 shadow-sm mt-4">
+            <div class="card-body p-4">
+                <h2 class="h5">Sınav henüz başlamadı</h2>
+                <p class="text-secondary mb-0">Başlangıç saatinde bu sayfayı yenileyerek sınava girebilirsiniz.</p>
+            </div>
+        </section>
+    {% elif now >= ends_at %}
+        <section class="card border-0 shadow-sm mt-4">
+            <div class="card-body p-4">
+                <h2 class="h5">Sınav süresi doldu</h2>
+                <p class="text-secondary mb-0">Sunucu süresi sona erdiği için artık cevap gönderilemez.</p>
+            </div>
+        </section>
+    {% else %}
+        <div class="exam-timer alert alert-primary mt-4" role="status">
+            Kalan süre: <strong id="remaining-time">--:--</strong>
+        </div>
+        <form method="post" id="answer-form">
+            {% for exam_question in exam.exam_questions %}
+                <section class="card border-0 shadow-sm mb-3">
+                    <div class="card-body p-4">
+                        <h2 class="h5">Soru {{ loop.index }}</h2>
+                        <p class="mb-3">{{ exam_question.question.text }}</p>
+                        <div class="d-grid gap-2">
+                            {% for option in exam_question.question.options %}
+                                <label class="answer-option">
+                                    <input class="form-check-input" type="radio" name="answer_{{ exam_question.id }}" value="{{ option.id }}">
+                                    <span>{{ option.text }}</span>
+                                </label>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </section>
+            {% endfor %}
+            <div class="d-flex justify-content-end">
+                <button class="btn btn-primary btn-lg" id="submit-answers" type="submit">Cevapları gönder</button>
+            </div>
+        </form>
+    {% endif %}
+</main>
+<script>
+    document.querySelectorAll(".local-time").forEach(function (element) {
+        element.textContent = new Date(element.dataset.utc).toLocaleString();
+    });
+
+    const remainingTime = document.getElementById("remaining-time");
+    if (remainingTime) {
+        const endsAt = new Date("{{ ends_at.isoformat() }}Z").getTime();
+        const submitButton = document.getElementById("submit-answers");
+        function updateRemainingTime() {
+            const seconds = Math.max(0, Math.floor((endsAt - Date.now()) / 1000));
+            const minutesLeft = Math.floor(seconds / 60);
+            const secondsLeft = seconds % 60;
+            remainingTime.textContent = String(minutesLeft).padStart(2, "0") + ":" + String(secondsLeft).padStart(2, "0");
+            if (seconds === 0) {
+                submitButton.disabled = true;
+                remainingTime.closest(".alert").classList.replace("alert-primary", "alert-danger");
+            }
+        }
+        updateRemainingTime();
+        window.setInterval(updateRemainingTime, 1000);
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+
+{% block title %}Erişim engellendi | ExamFlow{% endblock %}
+
+{% block body %}
+<main class="login-shell">
+    <section class="login-card card border-0 shadow-sm">
+        <div class="card-body p-5 text-center">
+            <a class="brand-mark" href="{{ url_for('index') }}">ExamFlow</a>
+            <h1 class="h4 mt-4">Bu sayfaya erişim yetkiniz yok</h1>
+            <p class="text-secondary mt-2">Hesabınızın rolü bu işlem için yeterli değil.</p>
+            <a class="btn btn-primary mt-3" href="{{ url_for('index') }}">Panele dön</a>
+        </div>
+    </section>
+</main>
+{% endblock %}

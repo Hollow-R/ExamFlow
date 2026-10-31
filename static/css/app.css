@@ -1,0 +1,135 @@
+:root {
+    --examflow-ink: #1d2b45;
+    --examflow-muted: #68758a;
+    --examflow-blue: #3156a4;
+    --examflow-background: #f4f6fb;
+}
+
+body {
+    min-height: 100vh;
+    color: var(--examflow-ink);
+    background: var(--examflow-background);
+}
+
+.brand-mark {
+    color: var(--examflow-blue);
+    font-size: 1.4rem;
+    font-weight: 700;
+    letter-spacing: -0.04em;
+    text-decoration: none;
+}
+
+.brand-mark:hover {
+    color: var(--examflow-blue);
+}
+
+.login-shell {
+    display: flex;
+    min-height: 100vh;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem 1rem;
+}
+
+.login-card {
+    width: 100%;
+    max-width: 460px;
+    border-radius: 1rem;
+}
+
+.form-control {
+    border-color: #dce2ed;
+}
+
+.form-control:focus {
+    border-color: var(--examflow-blue);
+    box-shadow: 0 0 0 0.2rem rgb(49 86 164 / 15%);
+}
+
+.btn-primary {
+    border-color: var(--examflow-blue);
+    background-color: var(--examflow-blue);
+}
+
+.btn-primary:hover {
+    border-color: #274987;
+    background-color: #274987;
+}
+
+.dashboard-layout {
+    display: grid;
+    min-height: calc(100vh - 57px);
+    grid-template-columns: 240px minmax(0, 1fr);
+}
+
+.dashboard-sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+    padding: 2rem 1rem;
+    border-right: 1px solid #e4e8f0;
+    background: #fff;
+}
+
+.sidebar-label,
+.eyebrow {
+    color: var(--examflow-muted);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.09em;
+}
+
+.sidebar-label {
+    padding: 0 0.85rem 0.65rem;
+}
+
+.sidebar-link {
+    padding: 0.7rem 0.85rem;
+    border-radius: 0.5rem;
+    color: #4c5a70;
+    text-decoration: none;
+}
+
+.sidebar-link.active {
+    color: var(--examflow-blue);
+    background: #edf2ff;
+    font-weight: 600;
+}
+
+.sidebar-link.disabled {
+    color: #9aa4b4;
+}
+
+.dashboard-content {
+    width: min(100%, 1100px);
+    padding: 2.5rem;
+}
+
+@media (max-width: 700px) {
+    .dashboard-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .dashboard-sidebar {
+        flex-direction: row;
+        flex-wrap: wrap;
+        gap: 0.25rem;
+        padding: 0.75rem;
+        border-right: 0;
+        border-bottom: 1px solid #e4e8f0;
+    }
+
+    .sidebar-label {
+        width: 100%;
+        padding-bottom: 0;
+    }
+
+    .sidebar-link {
+        padding: 0.5rem 0.65rem;
+        font-size: 0.9rem;
+    }
+
+    .dashboard-content {
+        padding: 1.5rem 1rem;
+    }
+}

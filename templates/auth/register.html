@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+
+{% block title %}Kayıt Ol | ExamFlow{% endblock %}
+
+{% block body %}
+<main class="login-shell">
+    <section class="login-card card border-0 shadow-sm">
+        <div class="card-body p-4 p-md-5">
+            <a class="brand-mark" href="{{ url_for('index') }}">ExamFlow</a>
+            <p class="text-secondary mt-2 mb-4">Sınav ve değerlendirme platformu</p>
+            <h1 class="h4 fw-semibold mb-4">Hesap oluşturun</h1>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }}" role="alert">{{ message }}</div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <form method="post" action="{{ url_for('auth.register') }}">
+                <div class="mb-3">
+                    <label class="form-label" for="role">Hesap türü</label>
+                    <select class="form-select" id="role" name="role" required>
+                        <option value="student" selected>Öğrenci</option>
+                        <option value="teacher">Öğretmen</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="full_name">Ad soyad</label>
+                    <input
+                        class="form-control"
+                        id="full_name"
+                        name="full_name"
+                        type="text"
+                        autocomplete="name"
+                        maxlength="120"
+                        required
+                    >
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="username">Kullanıcı adı</label>
+                    <input
+                        class="form-control"
+                        id="username"
+                        name="username"
+                        type="text"
+                        autocomplete="username"
+                        maxlength="80"
+                        required
+                    >
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="password">Şifre</label>
+                    <input
+                        class="form-control"
+                        id="password"
+                        name="password"
+                        type="password"
+                        autocomplete="new-password"
+                        minlength="8"
+                        maxlength="128"
+                        required
+                    >
+                </div>
+                <div class="mb-4">
+                    <label class="form-label" for="password_confirmation">Şifre tekrar</label>
+                    <input
+                        class="form-control"
+                        id="password_confirmation"
+                        name="password_confirmation"
+                        type="password"
+                        autocomplete="new-password"
+                        minlength="8"
+                        maxlength="128"
+                        required
+                    >
+                </div>
+                <button class="btn btn-primary btn-lg w-100" type="submit">Kayıt ol</button>
+            </form>
+            <p class="text-center text-secondary mt-4 mb-0">
+                Zaten hesabınız var mı?
+                <a href="{{ url_for('auth.login') }}">Giriş yapın</a>
+            </p>
+        </div>
+    </section>
+</main>
+{% endblock %}

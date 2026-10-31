@@ -1,12 +1,8 @@
 
-from flask import Flask, render_template
-
-app = Flask(__name__)
+from examflow import create_app
 
 
-@app.route("/")
-def index():
-    return render_template("index.html")
+app = create_app()
 
 
 def start_server():

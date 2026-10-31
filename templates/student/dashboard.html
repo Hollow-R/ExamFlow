@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block title %}Öğrenci Paneli | ExamFlow{% endblock %}
+
+{% block body %}
+<nav class="navbar bg-white border-bottom">
+    <div class="container-fluid px-4">
+        <a class="navbar-brand brand-mark" href="{{ url_for('student.dashboard') }}">ExamFlow</a>
+        <div class="d-flex align-items-center gap-3">
+            <span class="text-secondary">{{ current_user.full_name }}</span>
+            <form method="post" action="{{ url_for('auth.logout') }}">
+                <button class="btn btn-outline-secondary btn-sm" type="submit">Çıkış yap</button>
+            </form>
+        </div>
+    </div>
+</nav>
+<div class="dashboard-layout student-layout">
+    <aside class="dashboard-sidebar">
+        <span class="sidebar-label">ÖĞRENCİ</span>
+        <a class="sidebar-link active" href="{{ url_for('student.dashboard') }}">Genel bakış</a>
+        <span class="sidebar-link disabled" aria-disabled="true">Sınavlarım</span>
+        <span class="sidebar-link disabled" aria-disabled="true">Sonuçlarım</span>
+    </aside>
+    <main class="dashboard-content">
+        <p class="eyebrow mb-2">ÖĞRENCİ PANELİ</p>
+        <h1 class="h3 fw-semibold">Hoş geldiniz, {{ current_user.full_name }}</h1>
+        <p class="text-secondary mt-2">Size atanan sınavlar ve sonuçlar burada görüntülenecektir.</p>
+        <section class="card border-0 shadow-sm mt-4">
+            <div class="card-body p-4">
+                <h2 class="h5">Sınavlarım</h2>
+                <p class="text-secondary mb-0">
+                    Henüz görüntülenecek bir sınav bulunmuyor.
+                </p>
+            </div>
+        </section>
+    </main>
+</div>
+{% endblock %}

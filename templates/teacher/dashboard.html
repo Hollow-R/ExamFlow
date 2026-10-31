@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block title %}Öğretmen Paneli | ExamFlow{% endblock %}
+
+{% block body %}
+<nav class="navbar bg-white border-bottom">
+    <div class="container-fluid px-4">
+        <a class="navbar-brand brand-mark" href="{{ url_for('teacher.dashboard') }}">ExamFlow</a>
+        <div class="d-flex align-items-center gap-3">
+            <span class="text-secondary">{{ current_user.full_name }}</span>
+            <form method="post" action="{{ url_for('auth.logout') }}">
+                <button class="btn btn-outline-secondary btn-sm" type="submit">Çıkış yap</button>
+            </form>
+        </div>
+    </div>
+</nav>
+<div class="dashboard-layout">
+    <aside class="dashboard-sidebar">
+        <span class="sidebar-label">ÖĞRETMEN</span>
+        <a class="sidebar-link active" href="{{ url_for('teacher.dashboard') }}">Genel bakış</a>
+        <span class="sidebar-link disabled" aria-disabled="true">Öğrenciler</span>
+        <span class="sidebar-link disabled" aria-disabled="true">Soru bankası</span>
+        <span class="sidebar-link disabled" aria-disabled="true">Sınavlar</span>
+    </aside>
+    <main class="dashboard-content">
+        <p class="eyebrow mb-2">ÖĞRETMEN PANELİ</p>
+        <h1 class="h3 fw-semibold">Hoş geldiniz, {{ current_user.full_name }}</h1>
+        <p class="text-secondary mt-2">Sınav ve öğrenci yönetimi bu panelden yapılacaktır.</p>
+        <section class="card border-0 shadow-sm mt-4">
+            <div class="card-body p-4">
+                <h2 class="h5">Başlangıç</h2>
+                <p class="text-secondary mb-0">
+                    Hesabınız hazır. Soru bankası ve sınav yönetimi sonraki geliştirme
+                    aşamalarında eklenecektir.
+                </p>
+            </div>
+        </section>
+    </main>
+</div>
+{% endblock %}

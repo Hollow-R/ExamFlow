@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+
+{% block title %}Gönderim Logları | ExamFlow{% endblock %}
+
+{% block body %}
+<nav class="navbar bg-white border-bottom">
+    <div class="container-fluid px-4">
+        <a class="navbar-brand brand-mark" href="{{ url_for('teacher.dashboard') }}">ExamFlow</a>
+        <div class="d-flex align-items-center gap-3">
+            <span class="text-secondary">{{ current_user.full_name }}</span>
+            <form method="post" action="{{ url_for('auth.logout') }}">
+                <button class="btn btn-outline-secondary btn-sm" type="submit">Çıkış yap</button>
+            </form>
+        </div>
+    </div>
+</nav>
+<div class="dashboard-layout">
+    <aside class="dashboard-sidebar">
+        <span class="sidebar-label">ÖĞRETMEN</span>
+        <a class="sidebar-link" href="{{ url_for('teacher.dashboard') }}">Genel bakış</a>
+        <a class="sidebar-link" href="{{ url_for('teacher.questions') }}">Sorular</a>
+        <a class="sidebar-link" href="{{ url_for('teacher.exams') }}">Sınavlar</a>
+        <a class="sidebar-link active" href="{{ url_for('teacher.submission_logs') }}">Gönderim logları</a>
+    </aside>
+    <main class="dashboard-content">
+        <p class="eyebrow mb-2">ÖĞRETMEN PANELİ</p>
+        <h1 class="h3 fw-semibold">Sınav gönderim logları</h1>
+        <p class="text-secondary mt-2">En son 500 sınav gönderimi; zamanlar yerel saatinize dönüştürülür.</p>
+        <section class="card border-0 shadow-sm mt-4">
+            <div class="card-body p-4">
+                {% if events %}
+                    <div class="table-responsive">
+                        <table class="table align-middle">
+                            <thead>
+                                <tr>
+                                    <th>Gönderim zamanı</th>
+                                    <th>Öğrenci</th>
+                                    <th>Sınav</th>
+                                    <th>Puan</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for event in events %}
+                                    <tr>
+                                        <td>
+                                            <time class="local-time" data-utc="{{ event.timestamp_utc }}">
+                                                {{ event.timestamp_utc }}
+                                            </time>
+                                        </td>
+                                        <td>{{ event.username }}</td>
+                                        <td>{{ event.exam_title }}</td>
+                                        <td>{{ event.score }} / {{ event.maximum_score }}</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p class="text-secondary mb-0">Henüz sınav gönderim logu bulunmuyor.</p>
+                {% endif %}
+            </div>
+        </section>
+    </main>
+</div>
+<script>
+    document.querySelectorAll(".local-time").forEach(function (element) {
+        element.textContent = new Date(element.dataset.utc).toLocaleString();
+    });
+</script>
+{% endblock %}

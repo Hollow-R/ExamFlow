@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta, timezone
 
-from flask import abort, flash, redirect, render_template, request, url_for
+from flask import abort, current_app, flash, redirect, render_template, request, url_for
 from flask_login import current_user
 from sqlalchemy.exc import IntegrityError
 
@@ -15,6 +15,7 @@ from ..models import (
     QuestionOption,
     User,
 )
+from ..submission_logs import read_recent_submission_logs
 from . import teacher_bp
 
 
@@ -54,6 +55,8 @@ def _question_form_values():
     text = request.form.get("text", "").strip()
     category_id = request.form.get("category_id", type=int)
     difficulty = request.form.get("difficulty", "")
+    question_type = request.form.get("question_type", "multiple_choice")
+    expected_answer = request.form.get("expected_answer", "").strip()
     raw_options = [value.strip() for value in request.form.getlist("option_text")]
     correct_option = request.form.get("correct_option", type=int)
     if (
@@ -67,10 +70,26 @@ def _question_form_values():
     elif correct_option is not None:
         correct_option = None
     options = [value for value in raw_options if value]
-    return text, category_id, difficulty, options, correct_option
+    return (
+        text,
+        category_id,
+        difficulty,
+        question_type,
+        expected_answer,
+        options,
+        correct_option,
+    )
 
 
-def _validate_question_values(text, category_id, difficulty, options, correct_option):
+def _validate_question_values(
+    text,
+    category_id,
+    difficulty,
+    question_type,
+    expected_answer,
+    options,
+    correct_option,
+):
     if not text:
         return "Soru metni zorunludur."
     category = QuestionCategory.query.filter_by(
@@ -81,9 +100,17 @@ def _validate_question_values(text, category_id, difficulty, options, correct_op
         return "Geçerli bir kategori seçin."
     if difficulty not in DIFFICULTIES:
         return "Geçerli bir zorluk seviyesi seçin."
-    if not MIN_OPTIONS <= len(options) <= MAX_OPTIONS:
+    if question_type not in ("multiple_choice", "classic"):
+        return "Geçerli bir soru türü seçin."
+    if question_type == "classic" and not expected_answer:
+        return "Klasik soru için beklenen cevap zorunludur."
+    if len(expected_answer) > 10000:
+        return "Beklenen cevap en fazla 10000 karakter olabilir."
+    if question_type == "multiple_choice" and not MIN_OPTIONS <= len(options) <= MAX_OPTIONS:
         return "Bir soru 2 ile 4 arasında dolu şık içermelidir."
-    if correct_option is None or not 0 <= correct_option < len(options):
+    if question_type == "multiple_choice" and (
+        correct_option is None or not 0 <= correct_option < len(options)
+    ):
         return "Doğru cevabı şıklardan seçin."
     return None
 
@@ -109,18 +136,36 @@ def questions():
     form_text = ""
     form_category_id = None
     form_difficulty = "easy"
+    form_question_type = "multiple_choice"
+    form_expected_answer = ""
     form_options = []
     form_correct_option = None
 
     if request.method == "POST":
-        text, category_id, difficulty, options, correct_option = _question_form_values()
+        (
+            text,
+            category_id,
+            difficulty,
+            question_type,
+            expected_answer,
+            options,
+            correct_option,
+        ) = _question_form_values()
         form_text = text
         form_category_id = category_id
         form_difficulty = difficulty
+        form_question_type = question_type
+        form_expected_answer = expected_answer
         form_options = request.form.getlist("option_text")
         form_correct_option = request.form.get("correct_option", type=int)
         error = _validate_question_values(
-            text, category_id, difficulty, options, correct_option
+            text,
+            category_id,
+            difficulty,
+            question_type,
+            expected_answer,
+            options,
+            correct_option,
         )
         if error:
             flash(error, "danger")
@@ -130,11 +175,16 @@ def questions():
                 category_id=category_id,
                 text=text,
                 difficulty=difficulty,
+                question_type=question_type,
+                expected_answer=(
+                    expected_answer if question_type == "classic" else ""
+                ),
             )
-            question.options = [
-                QuestionOption(text=option, is_correct=index == correct_option)
-                for index, option in enumerate(options)
-            ]
+            if question_type == "multiple_choice":
+                question.options = [
+                    QuestionOption(text=option, is_correct=index == correct_option)
+                    for index, option in enumerate(options)
+                ]
             db.session.add(question)
             try:
                 db.session.commit()
@@ -158,6 +208,8 @@ def questions():
         form_text=form_text,
         form_category_id=form_category_id,
         form_difficulty=form_difficulty,
+        form_question_type=form_question_type,
+        form_expected_answer=form_expected_answer,
         form_options=form_options,
         form_correct_option=form_correct_option,
     )
@@ -200,18 +252,36 @@ def edit_question(question_id):
     form_text = None
     form_category_id = None
     form_difficulty = None
+    form_question_type = None
+    form_expected_answer = None
     form_options = None
     form_correct_option = None
 
     if request.method == "POST":
-        text, category_id, difficulty, options, correct_option = _question_form_values()
+        (
+            text,
+            category_id,
+            difficulty,
+            question_type,
+            expected_answer,
+            options,
+            correct_option,
+        ) = _question_form_values()
         form_text = text
         form_category_id = category_id
         form_difficulty = difficulty
+        form_question_type = question_type
+        form_expected_answer = expected_answer
         form_options = request.form.getlist("option_text")
         form_correct_option = request.form.get("correct_option", type=int)
         error = _validate_question_values(
-            text, category_id, difficulty, options, correct_option
+            text,
+            category_id,
+            difficulty,
+            question_type,
+            expected_answer,
+            options,
+            correct_option,
         )
         if error:
             flash(error, "danger")
@@ -219,10 +289,18 @@ def edit_question(question_id):
             question.text = text
             question.category_id = category_id
             question.difficulty = difficulty
-            question.options = [
-                QuestionOption(text=option, is_correct=index == correct_option)
-                for index, option in enumerate(options)
-            ]
+            question.question_type = question_type
+            question.expected_answer = (
+                expected_answer if question_type == "classic" else ""
+            )
+            question.options = (
+                [
+                    QuestionOption(text=option, is_correct=index == correct_option)
+                    for index, option in enumerate(options)
+                ]
+                if question_type == "multiple_choice"
+                else []
+            )
             db.session.commit()
             flash("Soru güncellendi.", "success")
             return redirect(url_for("teacher.questions"))
@@ -235,6 +313,8 @@ def edit_question(question_id):
         form_text=form_text,
         form_category_id=form_category_id,
         form_difficulty=form_difficulty,
+        form_question_type=form_question_type,
+        form_expected_answer=form_expected_answer,
         form_options=form_options,
         form_correct_option=form_correct_option,
     )
@@ -370,3 +450,15 @@ def exam_results(exam_id):
         now=_utc_now(),
         ends_at=exam.starts_at + timedelta(minutes=exam.duration_minutes),
     )
+
+
+@teacher_bp.route("/logs")
+@roles_required("teacher")
+def submission_logs():
+    path = current_app.config["SUBMISSION_LOG_PATH"]
+    try:
+        events = read_recent_submission_logs(path)
+    except (OSError, ValueError):
+        current_app.logger.exception("Gönderim log dosyası okunamadı: %s", path)
+        abort(500)
+    return render_template("teacher/logs.html", events=events)

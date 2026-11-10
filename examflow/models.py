@@ -46,6 +46,10 @@ class Question(db.Model):
     __tablename__ = "questions"
     __table_args__ = (
         CheckConstraint(
+            "question_type IN ('multiple_choice', 'classic')",
+            name="ck_questions_type",
+        ),
+        CheckConstraint(
             "difficulty IN ('easy', 'medium', 'hard')",
             name="ck_questions_difficulty",
         ),
@@ -58,6 +62,10 @@ class Question(db.Model):
     )
     text = db.Column(db.Text, nullable=False)
     difficulty = db.Column(db.String(10), nullable=False)
+    question_type = db.Column(
+        db.String(20), nullable=False, default="multiple_choice"
+    )
+    expected_answer = db.Column(db.Text, nullable=False, default="")
     category = db.relationship("QuestionCategory")
     options = db.relationship(
         "QuestionOption",
@@ -135,6 +143,11 @@ class ExamAssignment(db.Model):
         backref="assignment",
         cascade="all, delete-orphan",
     )
+    text_answers = db.relationship(
+        "TextStudentAnswer",
+        backref="assignment",
+        cascade="all, delete-orphan",
+    )
 
 
 class StudentAnswer(db.Model):
@@ -157,6 +170,25 @@ class StudentAnswer(db.Model):
     )
     exam_question = db.relationship("ExamQuestion")
     selected_option = db.relationship("QuestionOption")
+
+
+class TextStudentAnswer(db.Model):
+    __tablename__ = "text_student_answers"
+    __table_args__ = (
+        UniqueConstraint(
+            "assignment_id", "exam_question_id", name="uq_assignment_text_answer"
+        ),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    assignment_id = db.Column(
+        db.Integer, db.ForeignKey("exam_assignments.id"), nullable=False
+    )
+    exam_question_id = db.Column(
+        db.Integer, db.ForeignKey("exam_questions.id"), nullable=False
+    )
+    answer_text = db.Column(db.Text, nullable=False)
+    exam_question = db.relationship("ExamQuestion")
 
 
 @login_manager.user_loader

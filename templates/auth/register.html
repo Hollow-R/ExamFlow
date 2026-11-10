@@ -22,9 +22,20 @@
                 <div class="mb-3">
                     <label class="form-label" for="role">Hesap türü</label>
                     <select class="form-select" id="role" name="role" required>
-                        <option value="student" selected>Öğrenci</option>
-                        <option value="teacher">Öğretmen</option>
+                        <option value="student" {% if request.form.get('role', 'student') == 'student' %}selected{% endif %}>Öğrenci</option>
+                        <option value="teacher" {% if request.form.get('role') == 'teacher' %}selected{% endif %}>Öğretmen</option>
                     </select>
+                </div>
+                <div class="mb-3" id="teacher-code-group" {% if request.form.get('role') != 'teacher' %}hidden{% endif %}>
+                    <label class="form-label" for="teacher_registration_code">Öğretmen davet kodu</label>
+                    <input
+                        class="form-control"
+                        id="teacher_registration_code"
+                        name="teacher_registration_code"
+                        type="password"
+                        autocomplete="off"
+                        {% if request.form.get('role') == 'teacher' %}required{% endif %}
+                    >
                 </div>
                 <div class="mb-3">
                     <label class="form-label" for="full_name">Ad soyad</label>
@@ -85,4 +96,18 @@
         </div>
     </section>
 </main>
+<script>
+    const roleSelect = document.getElementById("role");
+    const teacherCodeGroup = document.getElementById("teacher-code-group");
+    const teacherCodeInput = document.getElementById("teacher_registration_code");
+
+    function updateTeacherCodeField() {
+        const isTeacher = roleSelect.value === "teacher";
+        teacherCodeGroup.hidden = !isTeacher;
+        teacherCodeInput.required = isTeacher;
+    }
+
+    roleSelect.addEventListener("change", updateTeacherCodeField);
+    updateTeacherCodeField();
+</script>
 {% endblock %}

@@ -22,6 +22,13 @@
         <div class="card-body p-4">
             <form method="post">
                 <div class="mb-3">
+                    <label class="form-label" for="question-type">Soru türü</label>
+                    <select class="form-select" id="question-type" name="question_type" required>
+                        <option value="multiple_choice" {% if (form_question_type if form_question_type is not none else question.question_type) == 'multiple_choice' %}selected{% endif %}>Çoktan seçmeli</option>
+                        <option value="classic" {% if (form_question_type if form_question_type is not none else question.question_type) == 'classic' %}selected{% endif %}>Klasik</option>
+                    </select>
+                </div>
+                <div class="mb-3">
                     <label class="form-label" for="question-text">Soru metni</label>
                     <textarea class="form-control" id="question-text" name="text" rows="3" required>{{ form_text if form_text is not none else question.text }}</textarea>
                 </div>
@@ -43,15 +50,20 @@
                         </select>
                     </div>
                 </div>
-                <fieldset class="mt-4">
+                <div class="mb-3" id="expected-answer-group" hidden>
+                    <label class="form-label" for="expected-answer">Beklenen cevap</label>
+                    <textarea class="form-control" id="expected-answer" name="expected_answer" rows="3" maxlength="10000">{{ form_expected_answer if form_expected_answer is not none else question.expected_answer }}</textarea>
+                    <div class="form-text">Otomatik puanlama, baştaki/sondaki boşlukları ve büyük-küçük harf farkını yok sayarak tam metin eşleşmesi yapar.</div>
+                </div>
+                <fieldset class="mt-4" id="multiple-choice-fields">
                     <legend class="form-label">Şıklar ve doğru cevap</legend>
                     {% for index in range(4) %}
                         <div class="input-group mb-2">
                             <span class="input-group-text">
-                                <input class="form-check-input mt-0" type="radio" name="correct_option" value="{{ index }}" aria-label="Bu şık doğru cevap" {% if form_correct_option is not none and form_correct_option == index %}checked{% elif form_correct_option is none and question.options|length > index and question.options[index].is_correct %}checked{% endif %} required>
+                                <input class="form-check-input mt-0 correct-option" type="radio" name="correct_option" value="{{ index }}" aria-label="Bu şık doğru cevap" {% if form_correct_option is not none and form_correct_option == index %}checked{% elif form_correct_option is none and question.options|length > index and question.options[index].is_correct %}checked{% endif %}>
                             </span>
                             <span class="input-group-text">{{ 'ABCD'[index] }}</span>
-                            <input class="form-control" name="option_text" maxlength="500" value="{{ form_options[index] if form_options is not none and index < form_options|length else (question.options[index].text if index < question.options|length else '') }}">
+                            <input class="form-control option-text" name="option_text" maxlength="500" value="{{ form_options[index] if form_options is not none and index < form_options|length else (question.options[index].text if index < question.options|length else '') }}">
                         </div>
                     {% endfor %}
                 </fieldset>
@@ -60,4 +72,29 @@
         </div>
     </section>
 </main>
+<script>
+    const questionType = document.getElementById("question-type");
+    const multipleChoiceFields = document.getElementById("multiple-choice-fields");
+    const expectedAnswerGroup = document.getElementById("expected-answer-group");
+    const expectedAnswerInput = document.getElementById("expected-answer");
+    const optionInputs = document.querySelectorAll(".option-text");
+    const correctOptions = document.querySelectorAll(".correct-option");
+
+    function updateQuestionTypeFields() {
+        const isMultipleChoice = questionType.value === "multiple_choice";
+        multipleChoiceFields.hidden = !isMultipleChoice;
+        expectedAnswerGroup.hidden = isMultipleChoice;
+        expectedAnswerInput.required = !isMultipleChoice;
+        optionInputs.forEach(function (input) {
+            input.disabled = !isMultipleChoice;
+        });
+        correctOptions.forEach(function (input) {
+            input.disabled = !isMultipleChoice;
+            input.required = isMultipleChoice;
+        });
+    }
+
+    questionType.addEventListener("change", updateQuestionTypeFields);
+    updateQuestionTypeFields();
+</script>
 {% endblock %}

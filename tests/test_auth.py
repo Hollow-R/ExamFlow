@@ -1,6 +1,6 @@
 import unittest
 
-from examflow import create_app
+from examflow import _load_or_create_secret_key, create_app
 from examflow.extensions import db
 from examflow.models import User
 
@@ -11,6 +11,7 @@ class AuthenticationTests(unittest.TestCase):
             {
                 "TESTING": True,
                 "SECRET_KEY": "test-secret",
+                "TEACHER_REGISTRATION_CODE": "0000",
                 "SQLALCHEMY_DATABASE_URI": "sqlite://",
             }
         )
@@ -36,6 +37,17 @@ class AuthenticationTests(unittest.TestCase):
         with self.app.app_context():
             db.session.remove()
             db.drop_all()
+
+    def test_session_secret_key_is_stable_across_app_restarts(self):
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            first_key = _load_or_create_secret_key(temporary_directory)
+            self.assertEqual(
+                _load_or_create_secret_key(temporary_directory),
+                first_key,
+            )
+            self.assertEqual(len(first_key), 64)
 
     def test_password_is_hashed(self):
         with self.app.app_context():
@@ -136,7 +148,7 @@ class AuthenticationTests(unittest.TestCase):
             response.data,
         )
 
-    def test_teacher_can_register_without_invitation_code(self):
+    def test_teacher_can_register_with_default_invitation_code(self):
         response = self.client.post(
             "/auth/register",
             data={
@@ -145,6 +157,7 @@ class AuthenticationTests(unittest.TestCase):
                 "password": "long-enough",
                 "password_confirmation": "long-enough",
                 "role": "teacher",
+                "teacher_registration_code": "0000",
             },
         )
         self.assertEqual(response.status_code, 302)
@@ -155,6 +168,25 @@ class AuthenticationTests(unittest.TestCase):
             user = User.query.filter_by(username="new-teacher").one()
             self.assertEqual(user.role, "teacher")
             self.assertTrue(user.check_password("long-enough"))
+
+    def test_teacher_registration_rejects_invalid_invitation_code(self):
+        response = self.client.post(
+            "/auth/register",
+            data={
+                "full_name": "Unverified Teacher",
+                "username": "unverified-teacher",
+                "password": "long-enough",
+                "password_confirmation": "long-enough",
+                "role": "teacher",
+                "teacher_registration_code": "1234",
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("davet kodu hatalı".encode("utf-8"), response.data)
+        with self.app.app_context():
+            self.assertIsNone(
+                User.query.filter_by(username="unverified-teacher").first()
+            )
 
     def test_authenticated_user_cannot_register_another_account(self):
         self.client.post(

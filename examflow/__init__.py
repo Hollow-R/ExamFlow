@@ -2,8 +2,9 @@ import os
 import secrets
 
 import click
-from flask import Flask, abort, redirect, render_template, url_for
+from flask import Flask, abort, jsonify, redirect, render_template, url_for
 from flask_login import current_user
+from sqlalchemy import inspect, text
 from sqlalchemy.exc import IntegrityError
 
 from .extensions import db, login_manager
@@ -18,9 +19,17 @@ def create_app(test_config=None):
         static_folder=os.path.join(project_root, "static"),
     )
     app.config.from_mapping(
-        SECRET_KEY=os.environ.get("EXAMFLOW_SECRET_KEY", secrets.token_hex(32)),
+        SECRET_KEY=os.environ.get("EXAMFLOW_SECRET_KEY")
+        or _load_or_create_secret_key(app.instance_path),
         SQLALCHEMY_DATABASE_URI=os.environ.get(
             "EXAMFLOW_DATABASE_URI", "sqlite:///examflow.db"
+        ),
+        TEACHER_REGISTRATION_CODE=os.environ.get(
+            "EXAMFLOW_TEACHER_REGISTRATION_CODE", "0000"
+        ),
+        SUBMISSION_LOG_PATH=os.environ.get(
+            "EXAMFLOW_SUBMISSION_LOG",
+            os.path.join(app.instance_path, "submission_logs.jsonl"),
         ),
         SQLALCHEMY_TRACK_MODIFICATIONS=False,
         SESSION_COOKIE_HTTPONLY=True,
@@ -46,6 +55,10 @@ def create_app(test_config=None):
     app.register_blueprint(auth_bp)
     app.register_blueprint(teacher_bp)
     app.register_blueprint(student_bp)
+
+    @app.route("/health")
+    def health():
+        return jsonify({"service": "ExamFlow", "status": "ok"})
 
     @app.route("/")
     def index():
@@ -102,5 +115,61 @@ def create_app(test_config=None):
 
     with app.app_context():
         db.create_all()
+        _migrate_question_schema()
 
     return app
+
+
+def _load_or_create_secret_key(instance_path):
+    os.makedirs(instance_path, exist_ok=True)
+    key_path = os.path.join(instance_path, "secret_key")
+    try:
+        with open(key_path, "r", encoding="ascii") as key_file:
+            secret_key = key_file.read().strip()
+        if secret_key:
+            return secret_key
+    except FileNotFoundError:
+        pass
+    except OSError as error:
+        raise RuntimeError("Flask oturum anahtarı okunamadı.") from error
+
+    secret_key = secrets.token_hex(32)
+    try:
+        with open(key_path, "x", encoding="ascii") as key_file:
+            key_file.write(secret_key)
+    except FileExistsError:
+        try:
+            with open(key_path, "r", encoding="ascii") as key_file:
+                existing_key = key_file.read().strip()
+        except OSError as error:
+            raise RuntimeError("Flask oturum anahtarı okunamadı.") from error
+        if not existing_key:
+            raise RuntimeError("Flask oturum anahtarı boş.")
+        return existing_key
+    except OSError as error:
+        raise RuntimeError("Flask oturum anahtarı kaydedilemedi.") from error
+    return secret_key
+
+
+def _migrate_question_schema():
+    if db.engine.dialect.name != "sqlite":
+        raise RuntimeError("Şema güncellemesi yalnızca SQLite için yapılandırılmıştır.")
+
+    existing_columns = {
+        column["name"] for column in inspect(db.engine).get_columns("questions")
+    }
+    with db.engine.begin() as connection:
+        if "question_type" not in existing_columns:
+            connection.execute(
+                text(
+                    "ALTER TABLE questions ADD COLUMN question_type "
+                    "VARCHAR(20) NOT NULL DEFAULT 'multiple_choice'"
+                )
+            )
+        if "expected_answer" not in existing_columns:
+            connection.execute(
+                text(
+                    "ALTER TABLE questions ADD COLUMN expected_answer "
+                    "TEXT NOT NULL DEFAULT ''"
+                )
+            )

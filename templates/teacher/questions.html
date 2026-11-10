@@ -20,11 +20,12 @@
         <a class="sidebar-link" href="{{ url_for('teacher.dashboard') }}">Genel bakış</a>
         <a class="sidebar-link active" href="{{ url_for('teacher.questions') }}">Sorular</a>
         <a class="sidebar-link" href="{{ url_for('teacher.exams') }}">Sınavlar</a>
+        <a class="sidebar-link" href="{{ url_for('teacher.submission_logs') }}">Gönderim logları</a>
     </aside>
     <main class="dashboard-content">
         <p class="eyebrow mb-2">ÖĞRETMEN PANELİ</p>
         <h1 class="h3 fw-semibold">Soru bankası</h1>
-        <p class="text-secondary mt-2">Kategorili ve zorluk seviyeli çoktan seçmeli sorularınızı yönetin.</p>
+        <p class="text-secondary mt-2">Çoktan seçmeli ve klasik sorularınızı kategori ve zorluk seviyeleriyle yönetin.</p>
 
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
@@ -54,6 +55,13 @@
                         {% else %}
                         <form method="post" action="{{ url_for('teacher.questions') }}">
                             <div class="mb-3">
+                                <label class="form-label" for="question-type">Soru türü</label>
+                                <select class="form-select" id="question-type" name="question_type" required>
+                                    <option value="multiple_choice" {% if form_question_type == 'multiple_choice' %}selected{% endif %}>Çoktan seçmeli</option>
+                                    <option value="classic" {% if form_question_type == 'classic' %}selected{% endif %}>Klasik</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
                                 <label class="form-label" for="question-text">Soru metni</label>
                                 <textarea class="form-control" id="question-text" name="text" rows="3" required>{{ form_text or '' }}</textarea>
                             </div>
@@ -76,16 +84,21 @@
                                     </select>
                                 </div>
                             </div>
-                            <fieldset class="mt-3">
+                            <div class="mb-3" id="expected-answer-group" hidden>
+                                <label class="form-label" for="expected-answer">Beklenen cevap</label>
+                                <textarea class="form-control" id="expected-answer" name="expected_answer" rows="3" maxlength="10000">{{ form_expected_answer or '' }}</textarea>
+                                <div class="form-text">Otomatik puanlama, baştaki/sondaki boşlukları ve büyük-küçük harf farkını yok sayarak tam metin eşleşmesi yapar.</div>
+                            </div>
+                            <fieldset class="mt-3" id="multiple-choice-fields">
                                 <legend class="form-label">Şıklar ve doğru cevap</legend>
                                 <div id="option-list">
                                     {% for index in range(4) %}
                                         <div class="input-group mb-2 option-row">
                                             <span class="input-group-text">
-                                                <input class="form-check-input mt-0" type="radio" name="correct_option" value="{{ index }}" aria-label="Bu şık doğru cevap" {% if form_correct_option == index %}checked{% endif %} required>
+                                                <input class="form-check-input mt-0 correct-option" type="radio" name="correct_option" value="{{ index }}" aria-label="Bu şık doğru cevap" {% if form_correct_option == index %}checked{% endif %}>
                                             </span>
                                             <span class="input-group-text option-letter">{{ 'ABCD'[index] }}</span>
-                                            <input class="form-control" name="option_text" maxlength="500" placeholder="Şık {{ index + 1 }}" value="{{ form_options[index] if form_options and index < form_options|length else '' }}">
+                                            <input class="form-control option-text" name="option_text" maxlength="500" placeholder="Şık {{ index + 1 }}" value="{{ form_options[index] if form_options and index < form_options|length else '' }}">
                                         </div>
                                     {% endfor %}
                                 </div>
@@ -114,13 +127,18 @@
                                                 <p class="fw-semibold mb-2">{{ question.text }}</p>
                                                 <div class="d-flex flex-wrap gap-2 mb-2">
                                                     <span class="badge text-bg-light">{{ question.category.name }}</span>
+                                                    <span class="badge text-bg-info">{{ 'Klasik' if question.question_type == 'classic' else 'Çoktan seçmeli' }}</span>
                                                     <span class="badge text-bg-secondary">{{ {'easy': 'Kolay', 'medium': 'Orta', 'hard': 'Zor'}[question.difficulty] }}</span>
                                                 </div>
-                                                <ol class="small text-secondary mb-0">
-                                                    {% for option in question.options %}
-                                                        <li {% if option.is_correct %}class="fw-semibold text-success"{% endif %}>{{ option.text }}{% if option.is_correct %} · Doğru cevap{% endif %}</li>
-                                                    {% endfor %}
-                                                </ol>
+                                                {% if question.question_type == 'classic' %}
+                                                    <p class="small text-success mb-0">Beklenen cevap: {{ question.expected_answer }}</p>
+                                                {% else %}
+                                                    <ol class="small text-secondary mb-0">
+                                                        {% for option in question.options %}
+                                                            <li {% if option.is_correct %}class="fw-semibold text-success"{% endif %}>{{ option.text }}{% if option.is_correct %} · Doğru cevap{% endif %}</li>
+                                                        {% endfor %}
+                                                    </ol>
+                                                {% endif %}
                                             </div>
                                             <div class="d-flex flex-column gap-2">
                                                 <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('teacher.edit_question', question_id=question.id) }}">Düzenle</a>
@@ -141,4 +159,29 @@
         </div>
     </main>
 </div>
+<script>
+    const questionType = document.getElementById("question-type");
+    const multipleChoiceFields = document.getElementById("multiple-choice-fields");
+    const expectedAnswerGroup = document.getElementById("expected-answer-group");
+    const expectedAnswerInput = document.getElementById("expected-answer");
+    const optionInputs = document.querySelectorAll(".option-text");
+    const correctOptions = document.querySelectorAll(".correct-option");
+
+    function updateQuestionTypeFields() {
+        const isMultipleChoice = questionType.value === "multiple_choice";
+        multipleChoiceFields.hidden = !isMultipleChoice;
+        expectedAnswerGroup.hidden = isMultipleChoice;
+        expectedAnswerInput.required = !isMultipleChoice;
+        optionInputs.forEach(function (input) {
+            input.disabled = !isMultipleChoice;
+        });
+        correctOptions.forEach(function (input) {
+            input.disabled = !isMultipleChoice;
+            input.required = isMultipleChoice;
+        });
+    }
+
+    questionType.addEventListener("change", updateQuestionTypeFields);
+    updateQuestionTypeFields();
+</script>
 {% endblock %}

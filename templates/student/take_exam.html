@@ -60,14 +60,19 @@
                     <div class="card-body p-4">
                         <h2 class="h5">Soru {{ loop.index }}</h2>
                         <p class="mb-3">{{ exam_question.question.text }}</p>
-                        <div class="d-grid gap-2">
-                            {% for option in exam_question.question.options %}
-                                <label class="answer-option">
-                                    <input class="form-check-input" type="radio" name="answer_{{ exam_question.id }}" value="{{ option.id }}">
-                                    <span>{{ option.text }}</span>
-                                </label>
-                            {% endfor %}
-                        </div>
+                        {% if exam_question.question.question_type == 'classic' %}
+                            <label class="form-label" for="text-answer-{{ exam_question.id }}">Cevabınız</label>
+                            <textarea class="form-control" id="text-answer-{{ exam_question.id }}" name="text_answer_{{ exam_question.id }}" rows="4" maxlength="10000"></textarea>
+                        {% else %}
+                            <div class="d-grid gap-2">
+                                {% for option in exam_question.question.options %}
+                                    <label class="answer-option">
+                                        <input class="form-check-input" type="radio" name="answer_{{ exam_question.id }}" value="{{ option.id }}">
+                                        <span>{{ option.text }}</span>
+                                    </label>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
                     </div>
                 </section>
             {% endfor %}

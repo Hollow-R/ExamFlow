@@ -17,7 +17,7 @@
         <div class="card-body p-4">
             <div class="table-responsive">
                 <table class="table align-middle">
-                    <thead><tr><th>Öğrenci</th><th>Kullanıcı adı</th><th>Durum</th><th>Puan</th><th>Gönderim zamanı</th></tr></thead>
+                    <thead><tr><th>Öğrenci</th><th>Kullanıcı adı</th><th>Durum</th><th>Puan</th><th>Gönderim zamanı</th><th></th></tr></thead>
                     <tbody>
                         {% for assignment in assignments %}
                             <tr>
@@ -27,16 +27,55 @@
                                     <td><span class="badge text-bg-success">Gönderildi</span></td>
                                     <td>{{ assignment.score }} / {{ exam.exam_questions|length }}</td>
                                     <td><time class="local-time" data-utc="{{ assignment.submitted_at.isoformat() }}Z">{{ assignment.submitted_at.strftime('%Y-%m-%d %H:%M') }} UTC</time></td>
+                                    <td><button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="collapse" data-bs-target="#answers-{{ assignment.id }}">Yanıtlar</button></td>
                                 {% elif now < exam.starts_at %}
-                                    <td><span class="badge text-bg-light">Bekliyor</span></td><td>—</td><td>—</td>
+                                    <td><span class="badge text-bg-light">Bekliyor</span></td><td>—</td><td>—</td><td>—</td>
                                 {% elif now < ends_at %}
-                                    <td><span class="badge text-bg-primary">Devam ediyor</span></td><td>—</td><td>—</td>
+                                    <td><span class="badge text-bg-primary">Devam ediyor</span></td><td>—</td><td>—</td><td>—</td>
                                 {% else %}
-                                    <td><span class="badge text-bg-secondary">Süre doldu</span></td><td>0 / {{ exam.exam_questions|length }}</td><td>—</td>
+                                    <td><span class="badge text-bg-secondary">Süre doldu</span></td><td>0 / {{ exam.exam_questions|length }}</td><td>—</td><td>—</td>
                                 {% endif %}
                             </tr>
+                            {% if assignment.submitted_at %}
+                                <tr class="collapse" id="answers-{{ assignment.id }}">
+                                    <td colspan="6">
+                                        <div class="row g-3">
+                                            {% for exam_question in exam.exam_questions %}
+                                                <div class="col-12 col-lg-6">
+                                                    <div class="answer-result card card-body">
+                                                        <p class="fw-semibold mb-2">Soru {{ loop.index }}: {{ exam_question.question.text }}</p>
+                                                        {% if exam_question.question.question_type == 'classic' %}
+                                                            {% set result = namespace(answer='Yanıt yok') %}
+                                                            {% for answer in assignment.text_answers %}
+                                                                {% if answer.exam_question_id == exam_question.id %}
+                                                                    {% set result.answer = answer.answer_text %}
+                                                                {% endif %}
+                                                            {% endfor %}
+                                                            <p class="small mb-1"><strong>Öğrenci yanıtı:</strong> {{ result.answer }}</p>
+                                                            <p class="small text-success mb-0"><strong>Beklenen yanıt:</strong> {{ exam_question.question.expected_answer }}</p>
+                                                        {% else %}
+                                                            {% set result = namespace(answer='Yanıt yok') %}
+                                                            {% for answer in assignment.answers %}
+                                                                {% if answer.exam_question_id == exam_question.id %}
+                                                                    {% set result.answer = answer.selected_option.text %}
+                                                                {% endif %}
+                                                            {% endfor %}
+                                                            <p class="small mb-1"><strong>Öğrenci yanıtı:</strong> {{ result.answer }}</p>
+                                                            {% for option in exam_question.question.options %}
+                                                                {% if option.is_correct %}
+                                                                    <p class="small text-success mb-0"><strong>Doğru yanıt:</strong> {{ option.text }}</p>
+                                                                {% endif %}
+                                                            {% endfor %}
+                                                        {% endif %}
+                                                    </div>
+                                                </div>
+                                            {% endfor %}
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endif %}
                         {% else %}
-                            <tr><td colspan="5" class="text-secondary">Bu sınava öğrenci atanmamış.</td></tr>
+                            <tr><td colspan="6" class="text-secondary">Bu sınava öğrenci atanmamış.</td></tr>
                         {% endfor %}
                     </tbody>
                 </table>
